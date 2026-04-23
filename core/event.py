@@ -37,8 +37,8 @@ class OrderEvent:
     symbol:     str = ""
     direction:  str = ""     # "BUY" hoặc "SELL"
     quantity:   int = 0
-    order_type: str = "MARKET"
-
+    order_type: str = "MARKET" #Có thể Market hoặc Limit
+    limit_price: float = None  #Chỉ dùng khi là Limit thôi
 
 @dataclass
 class FillEvent:
