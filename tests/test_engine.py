@@ -1,4 +1,4 @@
-# tests/test_engine.py
+
 from datetime import date
 from core.engine import BacktestEngine
 
@@ -30,3 +30,4 @@ engine.run()
 
 assert len(engine.portfolio.snapshots) == 5
 print("✅ Engine OK —", len(engine.portfolio.snapshots), "snapshots")
+

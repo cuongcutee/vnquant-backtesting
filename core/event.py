@@ -14,11 +14,7 @@ class MarketEvent:
     type:   EventType = field(default=EventType.MARKET, init=False)
     symbol: str   = ""
     date:   date  = None
-    open:   float = 0.0
-    high:   float = 0.0
-    low:    float = 0.0
-    close:  float = 0.0
-    volume: int   = 0
+    
 
 
 @dataclass
@@ -38,6 +34,7 @@ class OrderEvent:
     direction:  str = ""     # "BUY" hoặc "SELL"
     quantity:   int = 0
     order_type: str = "MARKET" #Có thể Market hoặc Limit
+    date:        date  = None    
     limit_price: float = None  #Chỉ dùng khi là Limit thôi
 
 @dataclass
@@ -48,7 +45,7 @@ class FillEvent:
     direction:       str   = ""
     quantity:        int   = 0
     fill_price:      float = 0.0
-    fill_date:       date  = None
+    date:             date  = None
     commission:      float = 0.0
     tax:             float = 0.0   # 0.1% sell-side, BUY = 0
     slippage:        float = 0.0
