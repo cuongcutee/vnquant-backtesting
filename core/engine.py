@@ -1,6 +1,6 @@
 import queue
 from dataclasses import dataclass, field
-from core.event import EventType,MarketEvent
+from core.event import EventType, OrderEvent, FillEvent
 
 class BacktestEngine:
     def __init__(self, handler, strategy, broker, portfolio):
@@ -12,40 +12,32 @@ class BacktestEngine:
     def run(self):
         # heartbeats_by_date() yield (date, [symbols]) — gom tất cả symbols trong 1 ngày
         for date, symbols_today in self.handler.heartbeats_by_date():
+             self._run_one_day(date, symbols_today)
  
-            # ── 1. Settle T+2 — CHỈ 1 LẦN mỗi ngày
-            self.portfolio.settle_pending(date)
- 
-            # ── 2. Xử lý từng symbol trong ngày 
-            for symbol in symbols_today:
- 
-                # Cập nhật giá hiện tại vào portfolio (để total_equity() đúng)
-                close = self.handler.get_latest_bar_value(symbol, "close")
+
+
+    def _run_one_day(self, date, symbols_today):            # ── 2. Xử lý từng symbol trong ngày 
+        for symbol in symbols_today:
+
+            # Cập nhật giá hiện tại vào portfolio (để total_equity() đúng)
+            close = self.handler.get_latest_bar_value(symbol, "close")
+            if close is not None:
                 self.portfolio.update_price(symbol, close)
+
+        orders = self.strategy.generate_signals(date, symbols_today, self.portfolio)
+        pending_fills = queue.Queue()
+        self.broker.process_pending(date, pending_fills)
+        while not pending_fills.empty():
+            fill = pending_fills.get()
+            if fill.type == EventType.FILL:
+                self.portfolio.on_fill(fill)
  
-                # Tạo queue riêng cho mỗi symbol trong ngày
-                events = queue.Queue()
-                events.put(MarketEvent(symbol=symbol, date=date))
+        # 3b. Push lệnh MỚI từ strategy vào broker (sẽ fill ngày mai).
+        for order in (orders or []):
+            if isinstance(order, OrderEvent) and order.quantity > 0:
+                self.broker.execute(order)
  
-                # Vòng lặp event
-                while not events.empty():
-                    ev = events.get()
- 
-                    if ev.type == EventType.MARKET:
-                        # Strategy quyết định → có thể put OrderEvent vào queue
-                        self.strategy.on_bar(ev, self.portfolio, events)
-                        # Broker fill các lệnh pending của symbol này
-                        self.broker.process_pending(ev, events)
- 
-                    elif ev.type == EventType.ORDER:
-                        # Broker nhận lệnh → add vào pending, fill bar tiếp theo
-                        self.broker.execute(ev, events)
- 
-                    elif ev.type == EventType.FILL:
-                        # Portfolio cập nhật positions / cash / pending T+2
-                        self.portfolio.on_fill(ev)
- 
-            #  3. Snapshot cuối ngày — CHỈ 1 LẦN mỗi ngày
-            # Gọi SAU khi xử lý xong tất cả symbols → tránh duplicate snapshot
-            self.portfolio.record_snapshot(date)
- 
+        # ── Phase 4: Settle T+2 + snapshot ───────────────────────────────────
+        # settle_pending trước record_snapshot để NAV cuối ngày đúng.
+        self.portfolio.settle_pending(date)
+        self.portfolio.record_snapshot(date)
