@@ -37,7 +37,7 @@ class BacktestEngine:
             if isinstance(order, OrderEvent) and order.quantity > 0:
                 self.broker.execute(order)
  
-        # ── Phase 4: Settle T+2 + snapshot ───────────────────────────────────
+        # ── Phase 4: Settle T+2 + snapshot 
         # settle_pending trước record_snapshot để NAV cuối ngày đúng.
         self.portfolio.settle_pending(date)
         self.portfolio.record_snapshot(date)
