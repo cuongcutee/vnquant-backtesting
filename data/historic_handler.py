@@ -29,12 +29,12 @@ class HistoricDataHandler(DataHandler):
     
     def get_latest_bars(self,symbol,N = 1):
         idx = self._current_idx[symbol]
-        if idx <0 : 
+        if idx < 0 : 
             return pd.DataFrame()
-        return self._data[symbol].iloc[max(0,idx - N+1),idx+1]
+        return self._data[symbol].iloc[max(0,idx - N+1):idx+1]
     
 
-     def get_latest_bar_value(self, symbol, field):
+    def get_latest_bar_value(self, symbol, field):
         idx = self._current_idx[symbol]
         if idx < 0: 
             return None
@@ -46,4 +46,4 @@ class HistoricDataHandler(DataHandler):
     def to_wide(self, field: str) -> pd.DataFrame:
         """Export (dates × symbols) cho vectorized API."""
         return pd.DataFrame({s: df[field] for s, df in self._data.items()
-                             if field in df.columns})
+                                if field in df.columns})
